@@ -30,7 +30,7 @@ services:
     
   ollama:
     container_name: ollama
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.13.5
     runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
