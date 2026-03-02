@@ -1,104 +1,31 @@
 services:
   open-webui:
     container_name: open-webui
-    image: ghcr.io/open-webui/open-webui:v0.8.7
+    image: ghcr.io/open-webui/open-webui:ollama
     environment:
-      - MODEL_DOWNLOAD_DIR=/models
-      - OLLAMA_API_BASE_URL=http://ollama:11434
-      - OLLAMA_API_URL=http://ollama:11434
-      - COMFYUI_API_BASE_URL=http://comfyui:8188
-      - LOG_LEVEL=debug
+      - OLLAMA_BASE_URL=http://localhost:11434
+      - OLLAMA_HOST=0.0.0.0
     volumes:
-      - data:/data
-      - models:/models
       - open-webui:/app/backend/data
+      - ollama:/root/.ollama
     ports:
       - "8080:8080"
-    logging:
-      driver: json-file
-      options:
-        max-size: "5m"
-        max-file: "2"
-    depends_on:
-      - ollama
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - ollama-net
-    restart: unless-stopped
-
-  ollama:
-    container_name: ollama
-    image: ollama/ollama:0.17.4
-    runtime: nvidia
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - CUDA_VISIBLE_DEVICES=0
-      - LOG_LEVEL=debug
+      - "11434:11434"
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              capabilities: [gpu]
               count: all
-    volumes:
-      - ollama:/root/.ollama
-      - models:/models
-    ports:
-      - "11434:11434"
-    logging:
-      driver: json-file
-      options:
-        max-size: "5m"
-        max-file: "2"
+              capabilities: [gpu]
     networks:
-      - ollama-net
+      - ai-bridge
     restart: unless-stopped
 
-  comfyui:
-    container_name: comfyui
-    image: yanwk/comfyui-boot:cu128-megapak
-    runtime: nvidia
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - CLI_ARGS=--disable-xformers
-    volumes:
-      - ./storage:/root
-      - ./storage-models/models:/root/ComfyUI/models
-      - ./storage-models/hf-hub:/root/.cache/huggingface/hub
-      - ./storage-models/torch-hub:/root/.cache/torch/hub
-      - ./storage-user/input:/root/ComfyUI/input
-      - ./storage-user/output:/root/ComfyUI/output
-      - ./storage-user/workflows:/root/ComfyUI/user/default/workflows
-    ports:
-      - "8188:8188"
-    networks:
-      - ollama-net
-    restart: unless-stopped
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    environment:
-      - DOCKER_API_VERSION=1.44
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300 open-webui  # Check for updates every 5 minutes
-    depends_on:
-      - open-webui
-    networks:
-      - ollama-net
-    restart: unless-stopped
-    
 volumes:
-  data:
-  models:
-  ollama:
   open-webui:
+  ollama:
 
 networks:
-  ollama-net:
+  ai-bridge:
     driver: bridge
