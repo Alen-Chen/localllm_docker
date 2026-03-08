@@ -1,7 +1,7 @@
 services:
   open-webui:
     container_name: open-webui
-    image: ghcr.io/open-webui/open-webui:v0.8.7
+    image: ghcr.io/open-webui/open-webui:v0.8.9
     environment:
       - MODEL_DOWNLOAD_DIR=/models
       - OLLAMA_API_BASE_URL=http://ollama:11434
@@ -29,7 +29,7 @@ services:
 
   ollama:
     container_name: ollama
-    image: ollama/ollama:0.17.4
+    image: ollama/ollama:0.17.7
     runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
