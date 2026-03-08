@@ -1,41 +1,12 @@
 services:
-  open-webui:
-    container_name: open-webui
-    image: ghcr.io/open-webui/open-webui:v0.8.9
-    environment:
-      - MODEL_DOWNLOAD_DIR=/models
-      - OLLAMA_API_BASE_URL=http://ollama:11434
-      - OLLAMA_API_URL=http://ollama:11434
-      - COMFYUI_API_BASE_URL=http://comfyui:8188
-      - LOG_LEVEL=debug
-    volumes:
-      - data:/data
-      - models:/models
-      - open-webui:/app/backend/data
-    ports:
-      - "8080:8080"
-    logging:
-      driver: json-file
-      options:
-        max-size: "5m"
-        max-file: "2"
-    depends_on:
-      - ollama
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - ollama-net
-    restart: unless-stopped
-
-  ollama:
-    container_name: ollama
-    image: ollama/ollama:0.17.7
+  vllm:
+    container_name: vllm
+    image: vllm/vllm-openai:latest
     runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - CUDA_VISIBLE_DEVICES=0
-      - LOG_LEVEL=debug
+      - VLLM_USE_MODELSCOPE=False
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
     deploy:
       resources:
         reservations:
@@ -44,61 +15,41 @@ services:
               capabilities: [gpu]
               count: all
     volumes:
-      - ollama:/root/.ollama
-      - models:/models
+      - ./storage-models/hf-hub/Qwen2.5-Coder-7B-Instruct-AWQ:/model
     ports:
-      - "11434:11434"
-    logging:
-      driver: json-file
-      options:
-        max-size: "5m"
-        max-file: "2"
+      - "8000:8000"
+    command: >
+      /model
+      --quantization awq
+      --max-model-len 16384
+      --gpu-memory-utilization 0.85
+      --served-model-name coder-model
+      --enable-prefix-caching
     networks:
-      - ollama-net
+      - ai-net
     restart: unless-stopped
 
-  comfyui:
-    container_name: comfyui
-    image: yanwk/comfyui-boot:cu128-megapak
-    runtime: nvidia
+  open-webui:
+    container_name: open-webui
+    image: ghcr.io/open-webui/open-webui:v0.8.9
     environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - CLI_ARGS=--disable-xformers
+      - OPENAI_API_BASE_URL=http://vllm:8000/v1
+      - OPENAI_API_KEY=vllm-coding-agent
+      - LOG_LEVEL=debug
     volumes:
-      - ./storage:/root
-      - ./storage-models/models:/root/ComfyUI/models
-      - ./storage-models/hf-hub:/root/.cache/huggingface/hub
-      - ./storage-models/torch-hub:/root/.cache/torch/hub
-      - ./storage-user/input:/root/ComfyUI/input
-      - ./storage-user/output:/root/ComfyUI/output
-      - ./storage-user/workflows:/root/ComfyUI/user/default/workflows
+      - open-webui:/app/backend/data
     ports:
-      - "8188:8188"
-    networks:
-      - ollama-net
-    restart: unless-stopped
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    environment:
-      - DOCKER_API_VERSION=1.44
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300 open-webui  # Check for updates every 5 minutes
+      - "8080:8080"
     depends_on:
-      - open-webui
+      vllm:
+        condition: service_started
     networks:
-      - ollama-net
+      - ai-net
     restart: unless-stopped
-    
+
 volumes:
-  data:
-  models:
-  ollama:
   open-webui:
 
 networks:
-  ollama-net:
+  ai-net:
     driver: bridge
