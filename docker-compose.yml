@@ -1,16 +1,26 @@
 services:
+  tika:
+    image: apache/tika:3.2.3.0-full
+    container_name: tika
+    restart: unless-stopped
+    networks:
+      - ai-bridge
   open-webui:
     container_name: open-webui
     image: ghcr.io/open-webui/open-webui:ollama
     environment:
       - OLLAMA_BASE_URL=http://localhost:11434
       - OLLAMA_HOST=0.0.0.0
+      - CONTENT_EXTRACT_ENGINE_TYPE=tika
+      - TIKA_SERVER_URL=http://tika:9998
     volumes:
       - open-webui:/app/backend/data
       - ollama:/root/.ollama
     ports:
       - "8080:8080"
       - "11434:11434"
+    depends_on:
+      - tika
     deploy:
       resources:
         reservations:
