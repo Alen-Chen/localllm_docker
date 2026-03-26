@@ -5,6 +5,29 @@ services:
     restart: unless-stopped
     networks:
       - ai-bridge
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    restart: unless-stopped
+    ports:
+      - "8081:8080"                  # Host port 8081 → container 8080
+    volumes:
+      - ./searxng/config:/etc/searxng
+      - ./searxng/data:/var/cache/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8081/   # Change if using a domain/reverse proxy
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    networks:
+      - ai-bridge
+    depends_on:
+      - tika
+
   open-webui:
     container_name: open-webui
     image: ghcr.io/open-webui/open-webui:ollama
@@ -13,6 +36,9 @@ services:
       - OLLAMA_HOST=0.0.0.0
       - CONTENT_EXTRACT_ENGINE_TYPE=tika
       - TIKA_SERVER_URL=http://tika:9998
+      - ENABLE_RAG_WEB_SEARCH=true
+      - RAG_WEB_SEARCH_ENGINE=searxng
+      - SEARXNG_QUERY_URL=http://searxng:8080/search?q=<query>
     volumes:
       - open-webui:/app/backend/data
       - ollama:/root/.ollama
@@ -21,6 +47,7 @@ services:
       - "11434:11434"
     depends_on:
       - tika
+      - searxng
     deploy:
       resources:
         reservations:
@@ -35,6 +62,8 @@ services:
 volumes:
   open-webui:
   ollama:
+  searxng-config:
+  searxng-data:
 
 networks:
   ai-bridge:

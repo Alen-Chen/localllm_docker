@@ -1,8 +1,8 @@
 from huggingface_hub import hf_hub_download
 
 # Replace with the model repo and GGUF filename you want
-repo_id = "mradermacher/MiniMax-M2.5-REAP-172B-A10B-i1-GGUF"
-filename = "MiniMax-M2.5-REAP-172B-A10B.i1-Q4_K_M.gguf"
+repo_id = "unsloth/Qwen3-Coder-Next-GGUF"
+filrname = "Qwen3-Coder-Next-UD-Q6_K_XL-00003-of-00003.gguf"
 
 # Download file
 file_path = hf_hub_download(
