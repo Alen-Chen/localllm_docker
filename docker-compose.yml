@@ -11,9 +11,9 @@ services:
     restart: unless-stopped
     ports:
       - "8081:8080"                  # Host port 8081 → container 8080
-    volumes:
-      - ./searxng/config:/etc/searxng
-      - ./searxng/data:/var/cache/searxng
+    #volumes:
+    #  - ./searxng/config:/etc/searxng
+    #  - ./searxng/data:/var/cache/searxng
     environment:
       - SEARXNG_BASE_URL=http://localhost:8081/   # Change if using a domain/reverse proxy
     cap_drop:
@@ -34,6 +34,12 @@ services:
     environment:
       - OLLAMA_BASE_URL=http://localhost:11434
       - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_FLASH_ATTENTION=1
+      - OLLAMA_MAX_LOADED_MODELS=2
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_GPU_OVERHEAD=0
+      - OLLAMA_NUM_GPU=999
+      - OLLAMA_NUM_CTX=131072
       - CONTENT_EXTRACT_ENGINE_TYPE=tika
       - TIKA_SERVER_URL=http://tika:9998
       - ENABLE_RAG_WEB_SEARCH=true
@@ -57,6 +63,14 @@ services:
               capabilities: [gpu]
     networks:
       - ai-bridge
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      stack:
+        soft: 67108864
+        hard: 67108864
+    shm_size: '64g'
     restart: unless-stopped
 
 volumes:
