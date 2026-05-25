@@ -5,17 +5,18 @@ services:
     restart: unless-stopped
     networks:
       - ai-bridge
+
   searxng:
     image: searxng/searxng:latest
     container_name: searxng
     restart: unless-stopped
     ports:
-      - "8081:8080"                  # Host port 8081 → container 8080
-    #volumes:
-    #  - ./searxng/config:/etc/searxng
-    #  - ./searxng/data:/var/cache/searxng
+      - "8081:8080"
+    volumes:
+      - ./searxng/config:/etc/searxng
+      - ./searxng/data:/var/cache/searxng
     environment:
-      - SEARXNG_BASE_URL=http://localhost:8081/   # Change if using a domain/reverse proxy
+      - SEARXNG_BASE_URL=http://localhost:8081/
     cap_drop:
       - ALL
     cap_add:
@@ -28,6 +29,27 @@ services:
     depends_on:
       - tika
 
+  rfq-analyzer:
+    container_name: rfq-analyzer
+    build:
+      context: ./rfq-analyzer
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./rfq-analyzer/uploads:/app/uploads
+      - ./rfq-analyzer/output:/app/output
+      - ./rfq-analyzer/static:/app/static
+    environment:
+      - OLLAMA_BASE_URL=http://10.10.121.25:11434
+      - OLLAMA_MODEL=huihui_ai/qwen3-coder-next-abliterated:q8_0
+    networks:
+      - ai-bridge
+    depends_on:
+      - tika
+      - searxng
+
   open-webui:
     container_name: open-webui
     image: ghcr.io/open-webui/open-webui:dev-ollama
@@ -39,7 +61,7 @@ services:
       - OLLAMA_NUM_PARALLEL=2
       - OLLAMA_GPU_OVERHEAD=0
       - OLLAMA_NUM_GPU=999
-      - OLLAMA_NUM_CTX=131072
+      - OLLAMA_NUM_CTX=32768
       - CONTENT_EXTRACT_ENGINE_TYPE=tika
       - TIKA_SERVER_URL=http://tika:9998
       - ENABLE_RAG_WEB_SEARCH=true
